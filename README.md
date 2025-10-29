@@ -5,7 +5,7 @@
 
 A tqdm-like progress bar that fills your terminal with a one-character-thick snake along a random space-filling curve.
 
-Port of the Python [snakebar](https://github.com/majoburo/snakebar) package to Julia, based on [Random Space-Filling Curves](https://observablehq.com/@esperanc/random-space-filling-curves).
+Based on [Random Space-Filling Curves](https://observablehq.com/@esperanc/random-space-filling-curves).
 
 ## Installation
 
@@ -75,5 +75,4 @@ MIT
 
 ## Credits
 
-Original Python implementation by Majo Bustamante Rosell.
-Based on the Observable notebook by Claudio Esperança.
+Based on the Observable notebook [Random Space-Filling Curves](https://observablehq.com/@esperanc/random-space-filling-curves) by Claudio Esperança.
