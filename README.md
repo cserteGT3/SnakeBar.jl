@@ -5,6 +5,8 @@
 
 A tqdm-like progress bar that fills your terminal with a one-character-thick snake along a random space-filling curve.
 
+![Multi-Snake Demo](docs/src/assets/multisnake-demo.gif)
+
 Based on [Random Space-Filling Curves](https://observablehq.com/@esperanc/random-space-filling-curves).
 
 ## Installation
