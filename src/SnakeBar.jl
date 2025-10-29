@@ -220,6 +220,35 @@ function _fmt_time(t::Float64)::String
     return @sprintf("%02d:%02d", m, s)
 end
 
+"""
+    SnakeBAR(total::Int; ch='█', bg=' ', seed=nothing, pad_x=0, pad_y=0, desc="", use_alt_screen=true)
+
+A tqdm-like progress bar that fills your terminal with a snake along a random space-filling curve.
+
+# Arguments
+- `total::Int`: Total number of iterations to track
+- `ch::Char='█'`: Character to use for drawing the snake
+- `bg::Char=' '`: Background character for empty cells
+- `seed::Union{Int,Nothing}=nothing`: Random seed for reproducible snake paths
+- `pad_x::Int=0`: Horizontal padding around the display
+- `pad_y::Int=0`: Vertical padding around the display
+- `desc::String=""`: Description text to show in the status line
+- `use_alt_screen::Bool=true`: Use alternate screen buffer (disappears when done)
+
+# Examples
+```julia
+# Manual control
+bar = SnakeBAR(100, desc="Processing")
+start!(bar)
+for i in 1:100
+    # your work here
+    update!(bar, 1)
+end
+close!(bar)
+```
+
+See also: [`snake_bar`](@ref), [`start!`](@ref), [`update!`](@ref), [`close!`](@ref)
+"""
 mutable struct SnakeBAR
     total::Int
     ch::Char
@@ -291,6 +320,13 @@ const _COLORS = [
 ]
 const _RESET_COLOR = "\x1b[0m"
 
+"""
+    start!(bar::SnakeBAR)
+
+Initialize and display the progress bar. Must be called before [`update!`](@ref).
+
+Returns the bar object for convenient chaining.
+"""
 function start!(bar::SnakeBAR)
     if bar.use_alt_screen
         print(_ALT_SCREEN_ON)  # Use alternate screen to avoid scrollback pollution
@@ -307,6 +343,13 @@ function start!(bar::SnakeBAR)
     return bar
 end
 
+"""
+    close!(bar::SnakeBAR)
+
+Clean up and restore the terminal to normal state. Should be called when progress tracking is complete.
+
+If `use_alt_screen=true` (default), the progress bar disappears from view.
+"""
 function close!(bar::SnakeBAR)
     # Force final repaint to show accurate final state (bypasses rate limiting)
     _repaint(bar; force=true)
@@ -408,10 +451,18 @@ function _repaint(bar::SnakeBAR; force::Bool=false)
     flush(stdout)
 end
 
+"""
+    update!(bar::SnakeBAR, n=1)
+
+Advance the progress bar by `n` steps. The snake grows longer on the display.
+
+Redraws are rate-limited to 60 FPS for performance.
+
+# Arguments
+- `bar::SnakeBAR`: The progress bar to update
+- `n::Int=1`: Number of steps to advance
+"""
 function update!(bar::SnakeBAR, n::Int=1)
-    """
-    Advance progress by n (like tqdm.update). Redraws only as needed.
-    """
     # clamp progress
     n = max(0, n)
     done = min(bar.total, bar._progress + n)
@@ -443,13 +494,41 @@ function update!(bar::SnakeBAR, n::Int=1)
     end
 end
 
+"""
+    set_description!(bar::SnakeBAR, desc::String)
+
+Update the description text shown in the status line.
+"""
 function set_description!(bar::SnakeBAR, desc::String)
     bar.desc = desc
     bar._dirty = true
     _repaint(bar; force=true)
 end
 
-# Convenience function for use with do-block
+"""
+    snake_bar(f::Function, iterable; kwargs...)
+    snake_bar(iterable; kwargs...)
+
+Convenience wrapper for [`SnakeBAR`](@ref) that automatically manages `start!` and `close!`.
+
+# Usage with do-block
+```julia
+snake_bar(1:100, desc="Processing") do i
+    # your code here
+    sleep(0.01)
+end
+```
+
+# Usage as iterator
+```julia
+for item in snake_bar(1:100, desc="Processing")
+    # your code here
+    sleep(0.01)
+end
+```
+
+All keyword arguments are passed to the [`SnakeBAR`](@ref) constructor.
+"""
 function snake_bar(f::Function, iterable; kwargs...)
     total = length(iterable)
     bar = SnakeBAR(total; kwargs...)
@@ -481,7 +560,40 @@ function snake_bar(iterable; kwargs...)
     end
 end
 
-# Multi-snake progress bar - multiple snakes in the same maze
+"""
+    MultiSnakeBAR(total::Int, n_snakes::Int; ch='█', colors=nothing, bg=' ', seed=nothing, pad_x=0, pad_y=0, desc="", use_alt_screen=true)
+
+Multi-snake progress bar that displays multiple colored snakes progressing through the same maze.
+
+Use [`update!`](@ref) to advance all snakes uniformly, or [`update_snake!`](@ref) to track independent progress
+for parallel processes.
+
+# Arguments
+- `total::Int`: Total number of iterations per snake
+- `n_snakes::Int`: Number of snakes to display (each gets a different color)
+- `ch::Char='█'`: Character to use for all snakes
+- `colors::Union{Vector{String},Nothing}=nothing`: Custom ANSI color codes (auto-generated if not provided)
+- `bg::Char=' '`: Background character
+- `seed::Union{Int,Nothing}=nothing`: Random seed for reproducible paths
+- `pad_x::Int=0`, `pad_y::Int=0`: Padding around the display
+- `desc::String=""`: Description text
+- `use_alt_screen::Bool=true`: Use alternate screen buffer
+
+# Examples
+```julia
+# Track 3 parallel processes
+bar = MultiSnakeBAR(100, 3, desc="3 Processes")
+start!(bar)
+for i in 1:100
+    update_snake!(bar, 1, 2)  # Process 1 advances by 2
+    update_snake!(bar, 2, 1)  # Process 2 advances by 1
+    update_snake!(bar, 3, 1)  # Process 3 advances by 1
+end
+close!(bar)
+```
+
+See also: [`multi_snake_bar`](@ref), [`update_snake!`](@ref)
+"""
 mutable struct MultiSnakeBAR
     total::Int
     n_snakes::Int
@@ -772,8 +884,23 @@ function _update_snake_internal!(bar::MultiSnakeBAR, snake_idx::Int, n::Int)
     return false
 end
 
+"""
+    update_snake!(bar::MultiSnakeBAR, snake_idx::Int, n=1)
+
+Advance a specific snake by `n` steps. Use this for tracking independent parallel processes.
+
+# Arguments
+- `bar::MultiSnakeBAR`: The multi-snake progress bar
+- `snake_idx::Int`: Index of the snake to update (1-based)
+- `n::Int=1`: Number of steps to advance
+
+# Example
+```julia
+update_snake!(bar, 1, 5)  # Advance snake 1 by 5 steps
+update_snake!(bar, 2, 3)  # Advance snake 2 by 3 steps
+```
+"""
 function update_snake!(bar::MultiSnakeBAR, snake_idx::Int, n::Int=1)
-    """Update a specific snake - draws independently through its segment"""
     if snake_idx < 1 || snake_idx > bar.n_snakes
         error("Invalid snake index: $snake_idx (must be between 1 and $(bar.n_snakes))")
     end
@@ -787,13 +914,41 @@ function update_snake!(bar::MultiSnakeBAR, snake_idx::Int, n::Int=1)
     end
 end
 
+"""
+    set_description!(bar::MultiSnakeBAR, desc::String)
+
+Update the description text shown in the status line.
+"""
 function set_description!(bar::MultiSnakeBAR, desc::String)
     bar.desc = desc
     bar._dirty = true
     _repaint(bar; force=true)
 end
 
-# Convenience function for multi-snake with do-block
+"""
+    multi_snake_bar(f::Function, iterable, n_snakes::Int; kwargs...)
+    multi_snake_bar(iterable, n_snakes::Int; kwargs...)
+
+Convenience wrapper for [`MultiSnakeBAR`](@ref) that automatically manages `start!` and `close!`.
+
+# Usage with do-block
+```julia
+multi_snake_bar(1:100, 3, desc="3 Snakes") do i
+    # All snakes advance together
+    sleep(0.01)
+end
+```
+
+# Usage as iterator
+```julia
+for item in multi_snake_bar(1:100, 3, desc="3 Snakes")
+    # All snakes advance together
+    sleep(0.01)
+end
+```
+
+All keyword arguments are passed to the [`MultiSnakeBAR`](@ref) constructor.
+"""
 function multi_snake_bar(f::Function, iterable, n_snakes::Int; kwargs...)
     total = length(iterable)
     bar = MultiSnakeBAR(total, n_snakes; kwargs...)
