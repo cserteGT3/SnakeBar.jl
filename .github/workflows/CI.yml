@@ -22,6 +22,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+        exclude:
+          # Julia 1.6 doesn't have ARM64 binaries for macOS
+          - version: '1.6'
+            os: macos-latest
 
     steps:
       - uses: actions/checkout@v4
