@@ -295,6 +295,13 @@ mutable struct SnakeBAR
     end
 end
 
+# Custom display for SnakeBAR objects to avoid dumping large internal arrays
+function Base.show(io::IO, bar::SnakeBAR)
+    progress_pct = bar.total > 0 ? round(100 * bar._progress / bar.total, digits=1) : 0.0
+    desc_str = isempty(bar.desc) ? "" : ", desc=\"$(bar.desc)\""
+    print(io, "SnakeBAR(total=$(bar.total), progress=$(bar._progress) ($(progress_pct)%)$desc_str)")
+end
+
 # Terminal control constants
 const _HIDE_CURSOR = "\x1b[?25l"
 const _SHOW_CURSOR = "\x1b[?25h"
@@ -340,7 +347,7 @@ function start!(bar::SnakeBAR)
     bar._start_time = time()
     bar._progress = 0
     _repaint(bar)
-    return bar
+    return nothing
 end
 
 """
@@ -672,6 +679,16 @@ mutable struct MultiSnakeBAR
     end
 end
 
+# Custom display for MultiSnakeBAR objects to avoid dumping large internal arrays
+function Base.show(io::IO, bar::MultiSnakeBAR)
+    total_done = sum(bar._progress)
+    total_all = bar.total * bar.n_snakes
+    progress_pct = total_all > 0 ? round(100 * total_done / total_all, digits=1) : 0.0
+    snake_progress = join(["S$i:$(bar._progress[i])" for i in 1:bar.n_snakes], " ")
+    desc_str = isempty(bar.desc) ? "" : ", desc=\"$(bar.desc)\""
+    print(io, "MultiSnakeBAR(total=$(bar.total), n_snakes=$(bar.n_snakes), progress=[$snake_progress] ($(progress_pct)%)$desc_str)")
+end
+
 function start!(bar::MultiSnakeBAR)
     if bar.use_alt_screen
         print(_ALT_SCREEN_ON)  # Use alternate screen to avoid scrollback pollution
@@ -684,7 +701,7 @@ function start!(bar::MultiSnakeBAR)
     bar._start_time = time()
     bar._progress = zeros(Int, bar.n_snakes)
     _repaint(bar)
-    return bar
+    return nothing
 end
 
 function close!(bar::MultiSnakeBAR)
