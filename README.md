@@ -13,7 +13,7 @@ Based on [Random Space-Filling Curves](https://observablehq.com/@esperanc/random
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/majoburo/SnakeBar.jl")
+Pkg.add("SnakeBar")
 ```
 
 ## Quick Start
