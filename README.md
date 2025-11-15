@@ -1,5 +1,7 @@
 # SnakeBar.jl
 
+dummy change in readme
+
 [![CI](https://github.com/Majoburo/SnakeBar.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Majoburo/SnakeBar.jl/actions/workflows/CI.yml)
 [![Documentation](https://github.com/Majoburo/SnakeBar.jl/actions/workflows/documentation.yml/badge.svg)](https://majoburo.github.io/SnakeBar.jl/)
 
