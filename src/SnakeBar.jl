@@ -1,5 +1,9 @@
 module SnakeBar
 
+export f1
+
+f1() = println("Hello world")
+
 export SnakeBAR, snake_bar, start!, update!, set_description!, close!, MultiSnakeBAR, multi_snake_bar, update_snake!
 
 using Random
