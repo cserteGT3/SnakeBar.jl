@@ -997,4 +997,7 @@ function multi_snake_bar(iterable, n_snakes::Int; kwargs...)
     end
 end
 
+export f3
+f3() = println("f3")
+
 end # module
